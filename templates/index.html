@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ko" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <title>SmartChip 라이브 스플릿 추적기</title>
+  <!-- 서버에서 전달된 초기 대회 ID (없으면 null) -->
+  <script>
+    window.INIT_MARATHON_ID = {{ init_mid if init_mid is not none else 'null' }};
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static_routes.static', filename='css/main.css') }}">
+</head>
+<body>
+  <div class="topbar">
+    <div class="toprow">
+      <div class="title">SmartChip 라이브 스플릿</div>
+      <span class="chip only-desktop">모바일 최적화</span>
+      <div class="spacer"></div>
+      <button class="btn ghost" id="themeBtn" aria-pressed="false" title="라이트/다크 전환">🌗 테마</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <!-- ▶ 추가: 그룹 생성 카드 -->
+    <div class="card" style="margin-bottom:12px;">
+      <div class="small muted" style="margin-bottom:6px;">그룹을 만들어 팀원들과 함께 추적하세요.</div>
+      <form id="groupCreateForm" style="display:flex; gap:8px; flex-wrap:wrap;">
+        <select id="groupMarathonSelect" class="input" aria-label="대회 선택" required>
+          <option value="">대회 선택…</option>
+          <!-- JS에서 /api/marathons 로 채움 -->
+        </select>
+        <input id="groupNameInput" class="input" placeholder="그룹 이름 (예: PAC A조)" required />
+        <button type="submit" class="btn primary">그룹 만들기</button>
+        <div class="spacer"></div>
+        <span class="small muted">생성 후 발급되는 <b>그룹 참여코드</b>를 팀원에게 공유하세요.</span>
+      </form>
+    </div>
+
+    <!-- ▶ 참여 코드 입력 -->
+    <div class="card" style="margin-bottom:12px;">
+      <div class="small muted" style="margin-bottom:6px;">그룹/대회 참여 코드로 바로 입장</div>
+      <form id="codeForm" style="display:flex; gap:8px; flex-wrap:wrap;">
+        <input id="joinCodeInput" class="input" placeholder="참여 코드 입력 (예: ABCD1234)" autocomplete="one-time-code" />
+        <button type="submit" class="btn">참여하기</button>
+        <div class="spacer"></div>
+        <span class="small muted">서버 유효성 검사 후 그룹이면 <code>/group/&lt;code&gt;</code>, 대회면 <code>/code/&lt;code&gt;</code>로 이동.</span>
+      </form>
+    </div>
+    <!-- 1) 대회 리스트 -->
+    <div id="viewList">
+      <div class="small muted">대회를 선택하세요. (카드는 /race/&lt;id&gt; 링크로 열립니다)</div>
+      <div id="marathonGrid" class="grid"></div>
+    </div>
+
+    <!-- 2) 특정 대회 보기 (종목 그룹) -->
+    <div id="viewRace" style="display:none;">
+      <div class="section-head" style="margin-top:4px;">
+        <a class="btn" href="/">← 목록</a>
+        <div id="raceTitle" style="font-weight:700;"></div>
+        <span class="small muted" id="raceMeta"></span>
+        <div class="spacer"></div>
+        <button class="btn" onclick="copyShare()">공유</button>
+      </div>
+
+      <!-- 참가자 추가 -->
+      <div class="card" style="margin-top:8px;">
+        <div class="small muted" style="margin-bottom:6px;">참가자 추가</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <input id="alias" class="input" placeholder="성명(표시용)" />
+          <input id="nameorbib" class="input" placeholder="배번 또는 이름 (nameorbibno)" />
+          <button class="btn primary" onclick="addP()">+ 추가</button>
+          <div class="spacer"></div>
+          <button class="btn" onclick="downloadCSV()">CSV</button>
+        </div>
+      </div>
+
+      <div id="groupContainer" class="section"></div>
+    </div>
+  </div>
+
+  <!-- 하단 FAB: 새로고침 간격 / 수동 새로고침 -->
+  <div class="fab" id="fab" style="display:none;">
+    <div class="seg" role="tablist" aria-label="자동 새로고침 간격">
+      <button class="segbtn" data-sec="15">15s</button>
+      <button class="segbtn active" data-sec="30">30s</button>
+      <button class="segbtn" data-sec="60">60s</button>
+    </div>
+    <button class="btn" onclick="manualRefresh()">새로고침</button>
+  </div>
+  <script src="{{ url_for('static_routes.static', filename='js/main.js') }}"></script>
+</body>
+</html>

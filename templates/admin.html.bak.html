@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <title>관리자 · SmartChip 라이브</title>
+  <style>
+    :root{
+      --bg:#0b0f17; --card:#111827; --muted:#9ca3af; --text:#e5e7eb;
+      --accent:#22c55e; --accent2:#60a5fa; --warn:#f59e0b; --danger:#ef4444;
+      --border:#1f2937;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; background:var(--bg); color:var(--text);
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;}
+    a{color:#93c5fd; text-decoration:none}
+    .wrap{max-width:1100px; margin:0 auto; padding:env(safe-area-inset-top) 16px 80px 16px;}
+
+    /* Top bar */
+    .topbar{
+      position:sticky; top:0; z-index:5; backdrop-filter:saturate(180%) blur(10px);
+      background:rgba(11,15,23,.85); border-bottom:1px solid var(--border);
+      padding:10px 16px;
+    }
+    .toprow{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .title{font-weight:800; font-size:18px}
+    .chip{display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; border:1px solid var(--border); color:var(--muted)}
+    .spacer{flex:1}
+    .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      padding:10px 14px; border-radius:12px; border:1px solid var(--border);
+      background:#0f1624; color:var(--text); font-weight:700; cursor:pointer}
+    .btn.primary{background:#111b2d; border-color:#274060}
+    .btn.danger{background:#2a1326; border-color:#3b0a0a; color:#fecaca}
+    .btn.ghost{background:transparent}
+    .btn.block{width:100%}
+
+    .grid{display:grid; grid-template-columns: repeat(auto-fill,minmax(280px,1fr)); gap:12px; margin-top:12px;}
+    .card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px;
+      box-shadow:0 4px 10px rgba(0,0,0,.25);}
+    .card h3{margin:0 0 8px; font-size:16px}
+    .small{color:var(--muted); font-size:12px}
+    .row{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+    .field{display:flex; flex-direction:column; gap:4px; flex:1; min-width:220px}
+    .field label{font-size:12px; color:var(--muted)}
+    .input, select{
+      padding:12px; border-radius:12px; border:1px solid var(--border);
+      background:#0f1624; color:var(--text); width:100%;
+      font-size:14px;
+    }
+    .two{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+    @media (max-width: 640px){ .two{grid-template-columns:1fr} }
+    details{border:1px solid var(--border); border-radius:12px; padding:8px; background:#0f1624}
+    details>summary{cursor:pointer; font-weight:700}
+    .tag{display:inline-block; padding:3px 8px; border:1px solid var(--border); border-radius:999px; font-size:12px; margin-right:6px}
+    .muted{color:var(--muted)}
+    .mono{font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+
+    /* participants list */
+    .plist{display:flex; flex-direction:column; gap:6px; margin-top:8px}
+    .pitem{display:flex; gap:8px; align-items:center; justify-content:space-between;
+      border:1px solid var(--border); border-radius:12px; padding:10px; background:#0f1624}
+
+    /* Floating bottom bar */
+    .fab{
+      position:fixed; left:0; right:0; bottom:0; z-index:10;
+      padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+      background:rgba(11,15,23,.95); border-top:1px solid var(--border);
+      display:flex; gap:8px; align-items:center;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="toprow">
+      <div class="title">관리자 · SmartChip 라이브</div>
+      <span class="chip">모바일 최적화</span>
+      <div class="spacer"></div>
+      <a class="btn ghost" href="/">사용자 화면</a>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <!-- 0) 빠른 이동 -->
+    <div class="row">
+      <div class="field" style="min-width:160px; max-width:320px;">
+        <label>딥링크(대회 바로가기)</label>
+        <div class="row" style="gap:6px;">
+          <input class="input" id="gotoId" placeholder="마라톤 ID 예: 1" inputmode="numeric" />
+          <button class="btn" onclick="openRaceLink()">열기</button>
+          <button class="btn ghost" onclick="copyRaceLink()">복사</button>
+        </div>
+        <div class="small muted">/race/&lt;id&gt;로 바로 접근</div>
+      </div>
+    </div>
+
+      <h3>참가자 엑셀 업로드</h3>
+      <form id="upload-form" enctype="multipart/form-data">
+          <label for="marathon-select">마라톤 선택:</label>
+          <select id="marathon-select" name="marathon_id" required>
+              <!-- JavaScript로 마라톤 목록을 채워주세요 -->
+          </select>
+          <br><br>
+          <label for="excel-file">엑셀 파일 선택:</label>
+          <input type="file" id="excel-file" name="file" accept=".xlsx, .xls" required>
+          <br><br>
+          <button type="submit">업로드</button>
+      </form>
+
+    <!-- 1) 새 대회 추가 -->
+    <div class="card" style="margin-top:12px;">
+      <h3>새 대회 추가</h3>
+      <div class="two">
+        <div class="field">
+          <label>대회명</label>
+          <input class="input" id="new_name" placeholder="예: 2025 히어로런" />
+        </div>
+        <div class="field">
+          <label>총거리 (km) — Half는 21.1</label>
+          <input class="input" id="new_total" type="number" inputmode="decimal" placeholder="21.1" value="21.1" />
+        </div>
+      </div>
+      <div class="two" style="margin-top:8px;">
+        <div class="field">
+          <label>크롤 주기 (초)</label>
+          <input class="input" id="new_refresh" type="number" inputmode="numeric" placeholder="60" value="60" />
+        </div>
+        <div class="field">
+          <label>usedata (대회 ID) — 예: 202550000158</label>
+          <input class="input mono" id="new_usedata" placeholder="스마트칩 usedata, 없으면 비워둠" />
+        </div>
+      </div>
+      <div class="field" style="margin-top:8px;">
+        <label>URL 템플릿</label>
+        <!-- <input class="input mono" id="new_url" placeholder="https://smartchip.co.kr/return_data_livephoto.asp?nameorbibno={nameorbibno}&usedata={usedata}" /> -->
+        <select class="input mono" id="url_${m.id}">
+          <option value="https://smartchip.co.kr/return_data_livephoto.asp?nameorbibno={nameorbibno}&usedata={usedata}" ${m.url_template.includes('smartchip') ? 'selected' : ''}>Smartchip</option>
+          <option value="http://time.spct.co.kr/m2.php?{usedata}&BIB_NO={nameorbibno}" ${m.url_template.includes('spct') ? 'selected' : ''}>SPCT</option>
+          <option value="https://myresult.co.kr/{usedata}/{nameorbibno}" ${m.url_template.includes('myresult') ? 'selected' : ''}>MyResult</option>
+        </select>
+        <div class="small muted">반드시 <b>{nameorbibno}</b>와 <b>{usedata}</b>를 포함해야 함</div>
+        <div class="small muted">
+          https://smartchip.co.kr/return_data_livephoto.asp?nameorbibno={nameorbibno}&usedata={usedata}<br />
+          http://time.spct.co.kr/m2.php?{usedata}&BIB_NO={nameorbibno} / EVENT_NO=2025092102&TargetYear=2025를 Usedata 에 입력<br />
+          https://myresult.co.kr/{usedata}/{nameorbibno}
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <button class="btn primary" onclick="createMarathon()">+ 대회 추가</button>
+      </div>
+    </div>
+
+    <!-- 2) 대회 목록(카드/인라인 편집 + 참가자 관리) -->
+    <div id="list" class="grid"></div>
+  </div>
+
+  <!-- 바닥 고정 바: 새로고침/갱신 -->
+  <div class="fab">
+    <button class="btn" onclick="loadAll()">목록 새로고침</button>
+    <div class="small muted">대회 카드에서 바로 수정/저장 가능합니다.</div>
+  </div>
+
+<script>
+let marathons = [];
+
+function $(id){ return document.getElementById(id); }
+function val(id){ return $(id).value.trim(); }
+function num(v, def){ const n = Number(v); return Number.isFinite(n) ? n : def; }
+function toast(msg){ alert(msg); }
+
+// 딥링크 빠른 이동
+function openRaceLink(){
+  const id = val('gotoId'); if(!id){ toast('마라톤 ID 입력'); return; }
+  location.href = `/race/${encodeURIComponent(id)}`;
+}
+function copyRaceLink(){
+  const id = val('gotoId'); if(!id){ toast('마라톤 ID 입력'); return; }
+  const url = `${location.origin}/race/${id}`;
+  navigator.clipboard.writeText(url).then(()=>toast('링크 복사됨')).catch(()=>prompt('복사 실패. 수동 복사:', url));
+}
+
+// URL 템플릿 검증
+function checkTemplate(u){
+  return u.includes('{nameorbibno}') && u.includes('{usedata}');
+}
+
+/* 1) 새 대회 추가 */
+async function createMarathon(){
+  const name = val('new_name');
+  const total = num(val('new_total'), 21.1);
+  const refresh = Math.max(5, num(val('new_refresh'), 60));
+  const usedata = val('new_usedata') || null;
+  const url = val('new_url');
+
+  if(!name){ toast('대회명 필수'); return; }
+  if(!url || !checkTemplate(url)){ toast('URL 템플릿에 {nameorbibno}, {usedata} 포함해야 합니다'); return; }
+
+  const r = await fetch('/api/marathons', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      name, url_template:url, usedata,
+      total_distance_km: total, refresh_sec: refresh
+    })
+  });
+  if(r.ok){ 
+    $('new_name').value=''; $('new_total').value='21.1';
+    $('new_refresh').value='60'; $('new_usedata').value=''; $('new_url').value='';
+    await loadAll(); toast('대회 추가 완료');
+  } else {
+    const t = await r.text().catch(()=> '오류'); toast('추가 실패\n'+t);
+  }
+}
+
+/* 2) 대회 리스트 로드 & 렌더 */
+async function loadAll(){
+  const r = await fetch('/api/marathons'); marathons = await r.json();
+  
+  // ✅ 엑셀 업로드용 마라톤 선택 목록 채우기
+  const select = $('marathon-select');
+  select.innerHTML = '';
+  if(!marathons.length){
+    select.innerHTML = '<option value="">등록된 대회가 없습니다</option>';
+  } else {
+    for(const m of marathons){
+      select.innerHTML += `<option value="${m.id}">${escapeHtml(m.name)} (ID: ${m.id})</option>`;
+    }
+  }
+
+  renderList();
+  // 쿼리로 특정 대회 펼치기: /admin?marathon_id=1
+  const mid = new URLSearchParams(location.search).get('marathon_id');
+  if(mid){ const el = document.querySelector(`[data-mid="${mid}"] details`); if(el) el.open = true; }
+}
+
+function renderList(){
+  const wrap = $('list'); wrap.innerHTML = '';
+  if(!marathons.length){
+    wrap.innerHTML = '<div class="card small muted">등록된 대회가 없습니다.</div>'; return;
+  }
+  for(const m of marathons){
+    const card = document.createElement('div');
+    card.className = 'card'; card.dataset.mid = m.id;
+
+    card.innerHTML = `
+      <h3>${m.name}</h3>
+      <div class="small">
+        <span class="tag">ID ${m.id}</span>
+        <span class="tag">${m.enabled ? '활성' : '비활성'}</span>
+        <span class="tag">${m.total_distance_km}km</span>
+        <span class="tag">${m.refresh_sec}s</span>
+      </div>
+
+      <div class="row" style="margin-top:10px; gap:10px;">
+        <a class="btn block" href="/race/${m.id}">사용자 화면 열기</a>
+        <button class="btn ghost block" onclick="copyLink(${m.id})">링크 복사</button>
+      </div>
+
+      <details style="margin-top:10px;">
+        <summary>설정 편집 / 참가자 관리</summary>
+
+        <div class="two" style="margin-top:8px;">
+          <div class="field">
+            <label>대회명</label>
+            <input class="input" id="name_${m.id}" value="${escapeHtml(m.name)}" />
+          </div>
+          <div class="field">
+            <label>총거리 (km)</label>
+            <input class="input" id="total_${m.id}" type="number" inputmode="decimal" value="${m.total_distance_km}" />
+          </div>
+        </div>
+
+        <div class="two" style="margin-top:8px;">
+          <div class="field">
+            <label>크롤 주기 (초)</label>
+            <input class="input" id="refresh_${m.id}" type="number" inputmode="numeric" value="${m.refresh_sec}" />
+          </div>
+          <div class="field">
+            <label>usedata (대회 ID)</label>
+            <input class="input mono" id="usedata_${m.id}" value="${m.usedata ?? ''}" />
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:8px;">
+          <label>URL 템플릿</label>
+          <input class="input mono" id="url_${m.id}" value="${escapeHtml(m.url_template)}" />
+          <div class="small muted">예: https://smartchip.co.kr/return_data_livephoto.asp?nameorbibno={nameorbibno}&usedata={usedata}</div>
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <select id="enabled_${m.id}" class="input" style="max-width:160px;">
+            <option value="1" ${m.enabled? 'selected':''}>활성</option>
+            <option value="0" ${!m.enabled? 'selected':''}>비활성</option>
+          </select>
+          <button class="btn primary" onclick="saveMarathon(${m.id})">저장</button>
+        </div>
+
+        <div class="small muted" style="margin-top:8px;">
+          미리보기(로컬에서 CORS로 외부 요청은 불가할 수 있음):  
+          <span class="mono">${previewUrl(m.id)}</span>
+        </div>
+
+        <div style="height:8px"></div>
+        <hr style="border:0; border-top:1px solid var(--border);" />
+
+        <div class="row" style="margin-top:8px;">
+          <div class="field"><label>참가자 목록</label></div>
+          <div class="spacer"></div>
+          <button class="btn" onclick="reloadParticipants(${m.id})">새로고침</button>
+        </div>
+
+        <div class="two" style="margin-top:6px;">
+          <div class="field">
+            <label>성명(표시용, 선택)</label>
+            <input class="input" id="palias_${m.id}" placeholder="홍길동 (선택)" />
+          </div>
+          <div class="field">
+            <label>배번/이름 (nameorbibno)</label>
+            <input class="input" id="pbib_${m.id}" placeholder="예: 10396 또는 홍길동" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:6px;">
+          <button class="btn primary" onclick="addParticipant(${m.id})">+ 참가자 추가</button>
+        </div>
+
+        <div id="plist_${m.id}" class="plist"></div>
+      </details>
+    `;
+
+    wrap.appendChild(card);
+    // 참가자 즉시 로드
+    reloadParticipants(m.id);
+  }
+}
+
+function escapeHtml(s){
+  return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;");
+}
+
+function previewUrl(mid){
+  // 카드 렌더 직후 값으로 간단 프리뷰 문자열만 구성
+  const m = marathons.find(x=>x.id===mid); if(!m) return '';
+  const ex = (m.url_template||'').replace('{nameorbibno}','<BIB>').replace('{usedata}', m.usedata || '<USEDATA>');
+  return ex;
+}
+
+function copyLink(mid){
+  const url = `${location.origin}/race/${mid}`;
+  navigator.clipboard.writeText(url).then(()=>alert('링크 복사됨')).catch(()=>prompt('복사 실패. 수동 복사:', url));
+}
+
+/* 저장 */
+async function saveMarathon(mid){
+  const name = val(`name_${mid}`);
+  const total = num(val(`total_${mid}`), 21.1);
+  const refresh = Math.max(5, num(val(`refresh_${mid}`), 60));
+  const usedata = val(`usedata_${mid}`) || null;
+  const url = val(`url_${mid}`);
+  const enabled = Number(val(`enabled_${mid}`)||'1');
+
+  if(!name){ toast('대회명 필수'); return; }
+  if(!url || !checkTemplate(url)){ toast('URL 템플릿에 {nameorbibno}, {usedata} 포함해야 합니다'); return; }
+
+  const r = await fetch(`/api/marathons/${mid}`, {
+    method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      name, url_template:url, usedata,
+      total_distance_km: total, refresh_sec: refresh, enabled
+    })
+  });
+  if(r.ok){ await loadAll(); toast('저장 완료'); }
+  else{ const t = await r.text().catch(()=> '오류'); toast('저장 실패\n'+t); }
+}
+
+/* 참가자 관리 */
+async function reloadParticipants(mid){
+  const r = await fetch(`/api/participants?marathon_id=${mid}`);
+  const list = await r.json();
+  const box = $(`plist_${mid}`); box.innerHTML = '';
+  if(!list.length){
+    box.innerHTML = '<div class="small muted">등록된 참가자가 없습니다.</div>'; return;
+  }
+  for(const p of list){
+    const div = document.createElement('div');
+    div.className = 'pitem';
+    div.innerHTML = `
+      <div>
+        <div><b>${escapeHtml(p.alias || '-')}</b> <span class="tag mono">#${escapeHtml(p.nameorbibno)}</span></div>
+        <div class="small muted">ID ${p.id} · active=${p.active}</div>
+      </div>
+      <div class="row">
+        <a class="btn" href="/race/${p.marathon_id}" title="해당 대회 열기">대회보기</a>
+        <button class="btn danger" onclick="delParticipant(${p.id}, ${mid})">삭제</button>
+      </div>
+    `;
+    box.appendChild(div);
+  }
+}
+
+async function addParticipant(mid){
+  const alias = val(`palias_${mid}`);
+  const nameorbibno = val(`pbib_${mid}`);
+  if(!nameorbibno){ toast('배번/이름은 필수'); return; }
+  const r = await fetch('/api/participants', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ marathon_id: mid, alias, nameorbibno })
+  });
+  if(r.ok){ $(`pbib_${mid}`).value=''; await reloadParticipants(mid); toast('추가 완료'); }
+  else{ const t=await r.text().catch(()=> '오류'); toast('추가 실패\n'+t); }
+}
+
+async function delParticipant(pid, mid){
+  if(!confirm('정말 삭제할까요?')) return;
+  await fetch(`/api/participants/${pid}`, {method:'DELETE'});
+  await reloadParticipants(mid);
+}
+
+/* 초기 진입: ?marathon_id= 로 특정 카드 펼치기 지원 */
+loadAll();
+
+// ✅ 엑셀 업로드 폼 제출 핸들러
+$('upload-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const formData = new FormData(form);
+  const marathonId = formData.get('marathon_id');
+  const file = formData.get('file');
+
+  if (!marathonId) {
+    toast('업로드할 마라톤을 선택해주세요.');
+    return;
+  }
+  if (!file || file.size === 0) {
+    toast('업로드할 엑셀 파일을 선택해주세요.');
+    return;
+  }
+
+  const r = await fetch('/api/participants/upload_excel', { method: 'POST', body: formData });
+  const result = await r.json();
+  toast(result.message || (result.error ? `오류: ${result.error}`: '알 수 없는 응답'));
+  if(r.ok) await reloadParticipants(marathonId);
+});
+</script>
+</body>
+</html>

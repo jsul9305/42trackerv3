@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>기록조회 - {{ bib }}</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        table { border-collapse: collapse; width: 600px; margin-top: 1em; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background-color: #f4f4f4; }
+    </style>
+</head>
+<body>
+    {# Jinja2 시간 포맷팅 함수 정의 #}
+    {%- macro format_time(seconds) -%}
+        {% set h = (seconds // 3600) | int %}
+        {% set m = ((seconds % 3600) // 60) | int %}
+        {% set s = (seconds % 60) | int %}
+        {{ "%02d:%02d:%02d" | format(h, m, s) }}
+    {%- endmacro -%}
+
+    <h1>기록조회</h1>
+    <h6 class="green">참가번호: {{ bib }} / 종목: {{ race }}</h6>
+
+    <table class="result-table">
+        <thead>
+            <tr><th>POINT</th><th>TIME</th><th>PASS TIME</th><th>PACE</th></tr>
+        </thead>
+        <tbody>
+            {% for s in splits %}
+            <tr>
+                <td>{{ s.label }}</td>
+                <td>{{ format_time(s.total_sec) }}</td>
+                <td>{{ format_time(s.clock_sec) }}</td>
+                <td>05:00</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

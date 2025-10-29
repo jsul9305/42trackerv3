@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <title>관리자 · SmartChip 라이브</title>
+  <link rel="stylesheet" href="{{ url_for('static_routes.static', filename='css/admin.css') }}">
+</head>
+<body>
+  <div class="topbar">
+    <div class="toprow">
+      <div class="title">관리자 · SmartChip 라이브</div>
+      <span class="chip">모바일 최적화</span>
+      <div class="spacer"></div>
+      <a class="btn ghost" href="/">사용자 화면</a>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <!-- 0) 빠른 이동 -->
+    <div class="row">
+      <div class="field" style="min-width:160px; max-width:320px;">
+        <label>딥링크(대회 바로가기)</label>
+        <div class="row" style="gap:6px;">
+          <input class="input" id="gotoId" placeholder="마라톤 ID 예: 1" inputmode="numeric" />
+          <button class="btn" onclick="openRaceLink()">열기</button>
+          <button class="btn ghost" onclick="copyRaceLink()">복사</button>
+        </div>
+        <div class="small muted">/race/&lt;id&gt;로 바로 접근</div>
+      </div>
+    </div>
+
+      <h3>참가자 엑셀 업로드</h3>
+      <form id="upload-form" enctype="multipart/form-data">
+          <label for="marathon-select">마라톤 선택:</label>
+          <select id="marathon-select" name="marathon_id" required>
+              <!-- JavaScript로 마라톤 목록을 채워주세요 -->
+          </select>
+          <br><br>
+          <label for="excel-file">엑셀 파일 선택:</label>
+          <input type="file" id="excel-file" name="file" accept=".xlsx, .xls" required>
+          <br><br>
+          <button type="submit">업로드</button>
+      </form>
+
+    <!-- 1) 새 대회 추가 -->
+    <div class="card" style="margin-top:12px;">
+      <h3>새 대회 추가</h3>
+      <div class="two">
+        <div class="field">
+          <label>대회명</label>
+          <input class="input" id="new_name" placeholder="예: 2025 히어로런" />
+        </div>
+        <div class="field">
+          <label>총거리 (km) — Half는 21.1</label>
+          <input class="input" id="new_total" type="number" inputmode="decimal" placeholder="21.1" value="21.1" />
+        </div>
+      </div>
+      <div class="two" style="margin-top:8px;">
+        <div class="field">
+          <label>크롤 주기 (초)</label>
+          <input class="input" id="new_refresh" type="number" inputmode="numeric" placeholder="60" value="60" />
+        </div>
+        <div class="field">
+          <label>usedata (대회 ID) — 예: 202550000158</label>
+          <input class="input mono" id="new_usedata" placeholder="스마트칩 usedata, 없으면 비워둠" />
+        </div>
+        <div class="field">
+          <label>대회 날짜 (선택)</label>
+          <input class="input" id="new_event_date" type="date" />
+        </div>
+      </div>
+      <div class="field" style="margin-top:8px;">
+        <label>URL 템플릿</label>
+        <!-- <input class="input mono" id="new_url" placeholder="https://smartchip.co.kr/return_data_livephoto.asp?nameorbibno={nameorbibno}&usedata={usedata}" /> -->
+        <select class="input mono" id="new_url">
+          <option value="https://smartchip.co.kr/return_data_livephoto.asp?nameorbibno={nameorbibno}&usedata={usedata}">Smartchip</option>
+          <option value="http://time.spct.co.kr/m2.php?{usedata}&BIB_NO={nameorbibno}">SPCT</option>
+          <option value="https://myresult.co.kr/{usedata}/{nameorbibno}">MyResult</option>
+        </select>
+        <div class="small muted">반드시 <b>{nameorbibno}</b>와 <b>{usedata}</b>를 포함해야 함</div>
+        <div class="small muted">
+          https://smartchip.co.kr/return_data_livephoto.asp?nameorbibno={nameorbibno}&usedata={usedata}<br />
+          http://time.spct.co.kr/m2.php?{usedata}&BIB_NO={nameorbibno} / EVENT_NO=2025092102&TargetYear=2025를 Usedata 에 입력<br />
+          https://myresult.co.kr/{usedata}/{nameorbibno}
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <button class="btn primary" onclick="createMarathon()">+ 대회 추가</button>
+      </div>
+    </div>
+
+    <!-- 2) 대회 목록(카드/인라인 편집 + 참가자 관리) -->
+    <div id="list" class="grid"></div>
+  </div>
+
+  <!-- 바닥 고정 바: 새로고침/갱신 -->
+  <div class="fab">
+    <button class="btn" onclick="loadAll()">목록 새로고침</button>
+    <div class="small muted">대회 카드에서 바로 수정/저장 가능합니다.</div>
+  </div>
+  <script src="{{ url_for('static_routes.static', filename='js/admin.js') }}"></script>
+</body>
+</html>
