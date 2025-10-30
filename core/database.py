@@ -93,6 +93,18 @@ CREATE TABLE IF NOT EXISTS track_followers (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (group_id) REFERENCES groups(id)
 );
+
+CREATE TABLE IF NOT EXISTS groups (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  marathon_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  group_code TEXT UNIQUE NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT,
+  updated_at TEXT,
+  FOREIGN KEY (marathon_id) REFERENCES marathons(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_code ON groups(group_code);
 """
 
 @contextmanager
